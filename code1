@@ -1,0 +1,32 @@
+import smbus
+import time
+
+# BerryIMUv3 accelerometer I2C address
+ACCEL_ADDR = 0x6A
+
+# Accelerometer data registers (LSB first)
+ACCEL_X_L = 0x28
+ACCEL_X_H = 0x29
+ACCEL_Y_L = 0x2A
+ACCEL_Y_H = 0x2B
+ACCEL_Z_L = 0x2C
+ACCEL_Z_H = 0x2D
+
+# Scale factor for 16g range (check your sensor setting; here 16g chosen)
+SCALE_FACTOR = 0.732 / 1000  # converting raw to g's (example scale)
+
+bus = smbus.SMBus(1)  # I2C bus 1 on Raspberry Pi
+
+def read_word(addr, reg_l, reg_h):
+    low = bus.read_byte_data(addr, reg_l)
+    high = bus.read_byte_data(addr, reg_h)
+    val = (high << 8) + low
+    if val >= 32768:
+        val -= 65536
+    return val
+
+while True:
+    raw_z = read_word(ACCEL_ADDR, ACCEL_Z_L, ACCEL_Z_H)
+    vertical_accel_g = raw_z * SCALE_FACTOR
+    print(f"Vertical acceleration (Z): {vertical_accel_g:.3f} g")
+    time.sleep(0.5)
