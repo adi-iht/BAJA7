@@ -18,8 +18,7 @@ OUTZ_H_XL  = 0x2D
 bus = smbus.SMBus(BUS_NUM)
 
 def init_accel():
-    # 104 Hz, ±2 g, anti-alias filter 50 Hz (0x40 is a typical config;
-    # check OzzMaker examples / datasheet if you want other ranges). [web:11][web:35]
+    # 104 Hz, ±2 g, anti-alias filter 50 Hz
     bus.write_byte_data(IMU_ADDR, CTRL1_XL, 0x40)
     time.sleep(0.1)
 
@@ -37,7 +36,7 @@ def read_accel_raw():
     az = read_axis(OUTZ_L_XL, OUTZ_H_XL)
     return ax, ay, az
 
-# For ±2 g, LSB sensitivity is ~0.061 mg/LSB -> 0.000061 g/LSB. [web:11][web:35]
+# For ±2 g, LSB sensitivity is ~0.061 mg/LSB -> 0.000061 g/LSB
 ACC_LSB_TO_G = 0.000061
 G_TO_MS2 = 9.80665
 
@@ -50,3 +49,12 @@ def read_accel_ms2():
     ay = ay_g * G_TO_MS2
     az = az_g * G_TO_MS2
     return ax, ay, az
+
+if __name__ == "__main__":
+    init_accel()
+
+    while True:
+        ax, ay, az = read_accel_ms2()
+        # Print nicely formatted accelerations in m/s^2
+        print(f"ax = {ax: .3f} m/s^2, ay = {ay: .3f} m/s^2, az = {az: .3f} m/s^2")
+        time.sleep(0.1)
