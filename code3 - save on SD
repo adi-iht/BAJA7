@@ -1,3 +1,21 @@
+import time
+import os
+
+log_path = os.path.expanduser("~/data_logs/imu_log.csv")
+
+# If you want a header only once:
+if not os.path.exists(log_path):
+    with open(log_path, "w") as f:
+        f.write("time_s,ax,ay,az\n")
+
+# Example: replace these with your real sensor read function
+def read_accel_ms2():
+    # ax, ay, az in m/s^2 from your IMU code
+    ax, ay, az = 0.0, 0.0, 9.81
+    return ax, ay, az
+
+start = time.time()
+
 while True:
     t = time.time() - start
     ax, ay, az = read_accel_ms2()
@@ -6,4 +24,4 @@ while True:
         f.write(f"{t:.3f},{ax:.5f},{ay:.5f},{az:.5f}\n")
 
     print(f"logged: t={t:.3f}s ax={ax:.2f} ay={ay:.2f} az={az:.2f}")
-    time.sleep(0.1)
+    time.sleep(0.1)  # log at 10 Hz
