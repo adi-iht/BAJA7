@@ -59,11 +59,19 @@ def read_accel_ms2():
     az = az_g * G_TO_MS2
     return ax, ay, az
 
+start = time.time()
+
 if __name__ == "__main__":
     init_accel()
 
     while True:
+        t = time.time() - start
         ax, ay, az = read_accel_ms2()
         # Print nicely formatted accelerations in m/s^2
-        print(f"ax = {ax: .3f} m/s^2, ay = {ay: .3f} m/s^2, az = {az: .3f} m/s^2")
-        time.sleep(0.1)
+        with open(log_path, "a") as f:
+            f.write(f"{t:.3f},{ax:.5f},{ay:.5f},{az:.5f}\n")
+
+        print(f"logged: t={t:.3f}s ax={ax:.2f} ay={ay:.2f} az={az:.2f}")
+        time.sleep(0.1)  # log at 10 Hz
+
+
