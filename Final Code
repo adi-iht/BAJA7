@@ -1,0 +1,62 @@
+
+import smbus
+import time
+import math
+import os
+
+# I2C settings
+BUS_NUM = 1
+IMU_ADDR = 0x6A  # BerryIMUv3 accel/gyro address
+
+# Register addresses (for LSM6DSL/LSM6DS33 family)
+CTRL1_XL   = 0x10  # accel control
+OUTX_L_XL  = 0x28
+OUTX_H_XL  = 0x29
+OUTY_L_XL  = 0x2A
+OUTY_H_XL  = 0x2B
+OUTZ_L_XL  = 0x2C
+OUTZ_H_XL  = 0x2D
+
+bus = smbus.SMBus(BUS_NUM)
+
+def init_accel():
+    # 104 Hz, ±2 g, anti-alias filter 50 Hz
+    bus.write_byte_data(IMU_ADDR, CTRL1_XL, 0x40)
+    time.sleep(0.1)
+
+def read_axis(reg_l, reg_h):
+    lo = bus.read_byte_data(IMU_ADDR, reg_l)
+    hi = bus.read_byte_data(IMU_ADDR, reg_h)
+    val = (hi << 8) | lo
+    if val & 0x8000:
+        val -= 0x10000
+    return val
+
+def read_accel_raw():
+    ax = read_axis(OUTX_L_XL, OUTX_H_XL)
+    ay = read_axis(OUTY_L_XL, OUTY_H_XL)
+    az = read_axis(OUTZ_L_XL, OUTZ_H_XL)
+    return ax, ay, az
+
+# For ±2 g, LSB sensitivity is ~0.061 mg/LSB -> 0.000061 g/LSB
+ACC_LSB_TO_G = 0.000061
+G_TO_MS2 = 9.80665
+
+def read_accel_ms2():
+    ax_raw, ay_raw, az_raw = read_accel_raw()
+    ax_g = ax_raw * ACC_LSB_TO_G
+    ay_g = ay_raw * ACC_LSB_TO_G
+    az_g = az_raw * ACC_LSB_TO_G
+    ax = ax_g * G_TO_MS2
+    ay = ay_g * G_TO_MS2
+    az = az_g * G_TO_MS2
+    return ax, ay, az
+
+if __name__ == "__main__":
+    init_accel()
+
+    while True:
+        ax, ay, az = read_accel_ms2()
+        # Print nicely formatted accelerations in m/s^2
+        print(f"ax = {ax: .3f} m/s^2, ay = {ay: .3f} m/s^2, az = {az: .3f} m/s^2")
+        time.sleep(0.1)
