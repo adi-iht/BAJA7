@@ -1,0 +1,81 @@
+import smbus
+import time
+import math
+import os
+
+# Paths for logs
+log_path_A = os.path.expanduser("~/data_logs/imu_log_6A.csv")
+log_path_B = os.path.expanduser("~/data_logs/imu_log_6B.csv")
+
+# Create logs with headers if not exist
+for log_path in [log_path_A, log_path_B]:
+    if not os.path.exists(log_path):
+        with open(log_path, "w") as f:
+            f.write("time_s,ax,ay,az\n")
+
+# I2C bus number
+BUS_NUM = 1
+
+# BerryIMUv3 addresses
+ADDR_6A = 0x6A
+ADDR_6B = 0x6B
+
+# Register addresses
+CTRL1_XL = 0x10
+OUTX_L_XL = 0x28
+OUTX_H_XL = 0x29
+OUTY_L_XL = 0x2A
+OUTY_H_XL = 0x2B
+OUTZ_L_XL = 0x2C
+OUTZ_H_XL = 0x2D
+
+bus = smbus.SMBus(BUS_NUM)
+
+def init_accel(addr):
+    bus.write_byte_data(addr, CTRL1_XL, 0x40)
+    time.sleep(0.1)
+
+def read_axis(addr, reg_l, reg_h):
+    lo = bus.read_byte_data(addr, reg_l)
+    hi = bus.read_byte_data(addr, reg_h)
+    val = (hi << 8) | lo
+    if val & 0x8000:
+        val -= 0x10000
+    return val
+
+def read_accel_raw(addr):
+    ax = read_axis(addr, OUTX_L_XL, OUTX_H_XL)
+    ay = read_axis(addr, OUTY_L_XL, OUTY_H_XL)
+    az = read_axis(addr, OUTZ_L_XL, OUTZ_H_XL)
+    return ax, ay, az
+
+ACC_LSB_TO_G = 0.000061
+G_TO_MS2 = 9.80665
+
+def read_accel_ms2(addr):
+    ax_raw, ay_raw, az_raw = read_accel_raw(addr)
+    ax = ax_raw * ACC_LSB_TO_G * G_TO_MS2
+    ay = ay_raw * ACC_LSB_TO_G * G_TO_MS2
+    az = az_raw * ACC_LSB_TO_G * G_TO_MS2
+    return ax, ay, az
+
+start = time.time()
+
+if __name__ == "__main__":
+    init_accel(ADDR_6A)
+    init_accel(ADDR_6B)
+
+    while True:
+        t = time.time() - start
+
+        ax_a, ay_a, az_a = read_accel_ms2(ADDR_6A)
+        with open(log_path_A, "a") as f:
+            f.write(f"{t:.3f},{ax_a:.5f},{ay_a:.5f},{az_a:.5f}\n")
+        print(f"6A logged: t={t:.3f}s ax={ax_a:.2f} ay={ay_a:.2f} az={az_a:.2f}")
+
+        ax_b, ay_b, az_b = read_accel_ms2(ADDR_6B)
+        with open(log_path_B, "a") as f:
+            f.write(f"{t:.3f},{ax_b:.5f},{ay_b:.5f},{az_b:.5f}\n")
+        print(f"6B logged: t={t:.3f}s ax={ax_b:.2f} ay={ay_b:.2f} az={az_b:.2f}")
+
+        time.sleep(0.1)
