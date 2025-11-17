@@ -3,6 +3,13 @@ import smbus
 import time
 import math
 import os
+l
+og_path = os.path.expanduser("~/data_logs/imu_log.csv")
+
+# If you want a header only once:
+if not os.path.exists(log_path):
+    with open(log_path, "w") as f:
+        f.write("time_s,ax,ay,az\n")
 
 # I2C settings
 BUS_NUM = 1
